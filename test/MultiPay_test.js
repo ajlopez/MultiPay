@@ -184,5 +184,72 @@ contract('MultiPay', function (accounts) {
             assert.equal(finalCharlieBalance, initialCharlieBalance);
         });
     });
+    
+    describe('pay tokens many accounts many amounts', function () {
+        let multiPay;
+        let token;
+        
+        beforeEach(async function () {
+            multiPay = await MultiPay.new();
+            token = await BasicToken.new('Token', 'TOK');
+            await token.approve(multiPay.address, 2000000);
+        });
+    
+        it('pay tokens to two accounts', async function () {
+            const initialBobBalance = Number(await token.balanceOf(bob));
+            const initialCharlieBalance = Number(await token.balanceOf(charlie));
+            
+            await multiPay.payTokenManyAmountsToManyAddresses(token.address, 2000000, [bob, charlie], [ 800000, 1200000 ]);
+            
+            const finalBobBalance = Number(await token.balanceOf(bob));
+            const finalCharlieBalance = Number(await token.balanceOf(charlie));
+            
+            assert.equal(finalBobBalance, initialBobBalance + 800000);
+            assert.equal(finalCharlieBalance, initialCharlieBalance + 1200000);
+        });
+    
+        it('pay tokens to two accounts with too much token value', async function () {
+            const initialBobBalance = Number(await token.balanceOf(bob));
+            const initialCharlieBalance = Number(await token.balanceOf(charlie));
+            
+            await multiPay.payTokenManyAmountsToManyAddresses(token.address, 2000000, [bob, charlie], [ 800000, 800000 ]);
+            
+            const finalBobBalance = Number(await token.balanceOf(bob));
+            const finalCharlieBalance = Number(await token.balanceOf(charlie));
+            
+            assert.equal(finalBobBalance, initialBobBalance + 800000);
+            assert.equal(finalCharlieBalance, initialCharlieBalance + 800000);
+            
+            const contractBalance = Number(await token.balanceOf(multiPay.address));
+            
+            assert.equal(contractBalance, 0);
+        });
+        
+        it('pay to two accounts without enough value', async function () {
+            const initialBobBalance = Number(await web3.eth.getBalance(bob));
+            const initialCharlieBalance = Number(await web3.eth.getBalance(charlie));
+            
+            expectThrow(multiPay.payTokenManyAmountsToManyAddresses(token.address, 2000000, [bob, charlie], [1000000, 2000000]));
+            
+            const finalBobBalance = Number(await web3.eth.getBalance(bob));
+            const finalCharlieBalance = Number(await web3.eth.getBalance(charlie));
+            
+            assert.equal(finalBobBalance, initialBobBalance);
+            assert.equal(finalCharlieBalance, initialCharlieBalance);
+        });
+        
+        it('pay three amounts to two accounts', async function () {
+            const initialBobBalance = Number(await web3.eth.getBalance(bob));
+            const initialCharlieBalance = Number(await web3.eth.getBalance(charlie));
+            
+            expectThrow(multiPay.payTokenManyAmountsToManyAddresses(token.address, 2000000, [bob, charlie], [100000, 200000, 300000]));
+            
+            const finalBobBalance = Number(await web3.eth.getBalance(bob));
+            const finalCharlieBalance = Number(await web3.eth.getBalance(charlie));
+            
+            assert.equal(finalBobBalance, initialBobBalance);
+            assert.equal(finalCharlieBalance, initialCharlieBalance);
+        });
+    });
 });
 
